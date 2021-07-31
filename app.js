@@ -20,7 +20,7 @@ createAutoComplete({
   root: document.querySelector('#left-autocomplete'),
   onOptionSelect: (movie) => {
     document.querySelector('.tutorial').classList.add('is-hidden');
-    onMovieSelect(movie, document.querySelector('#left-summary'), 'left');
+    onMovieSelect(movie, document.querySelector('#left-summary'));
   },
   ...autoCompleteConfig,
 });
@@ -28,22 +28,26 @@ createAutoComplete({
   root: document.querySelector('#right-autocomplete'),
   onOptionSelect: (movie) => {
     document.querySelector('.tutorial').classList.add('is-hidden');
-    onMovieSelect(movie, document.querySelector('#right-summary'), 'right');
+    onMovieSelect(movie, document.querySelector('#right-summary'));
   },
   ...autoCompleteConfig,
 });
 
-let leftMovie;
-let rightMovie;
-const onMovieSelect = async (movie, summaryEl, side) => {
-  const movieData = await fetchById(movie.imdbID);
-  summaryEl.innerHTML = movieTemplate(movieData);
-  if (side === 'left') leftMovie = movieData;
-  if (side === 'right') rightMovie = movieData;
-  if (leftMovie && rightMovie) {
-    runComparison();
-  }
+const onSelect = (left, right) => {
+  const onMovieSelect = async (movie, summaryEl) => {
+    const movieData = await fetchById(movie.imdbID);
+    summaryEl.innerHTML = movieTemplate(movieData);
+    if (left.textContent && right.textContent) {
+      runComparison();
+    }
+  };
+  return onMovieSelect;
 };
+
+const onMovieSelect = onSelect(
+  document.querySelector('#left-summary'),
+  document.querySelector('#right-summary')
+);
 
 const runComparison = () => {
   const leftSideStats = document.querySelectorAll('#left-summary .card-article');
@@ -51,7 +55,6 @@ const runComparison = () => {
 
   leftSideStats.forEach((leftStat, index) => {
     const rightStat = rightSideStats[index];
-
     const leftSideValue = Number(leftStat.dataset.value);
     const rightSideValue = Number(rightStat.dataset.value);
 
@@ -74,6 +77,21 @@ const movieTemplate = (movieDetail) => {
     if (!isNaN(cur)) acc += Number(cur);
     return acc;
   }, 0);
+  const cardValuesArr = [
+    { title: 'Awards', text: movieDetail.Awards, val: awards },
+    { title: 'Box Office', text: movieDetail.BoxOffice, val: dollars },
+    { title: 'Metascore', text: movieDetail.Metascore, val: metascore },
+    { title: 'IMDB Rating', text: movieDetail.imdbRating, val: imdbRating },
+    { title: 'IMDB Votes', text: movieDetail.imdbVotes, val: imdbVotes },
+  ];
+  const cardArticles = cardValuesArr
+    .map(({ title, text, val }) => {
+      return `<article data-value=${val} class="card-article card-border-primary">
+    <p>${title}</p>
+    <h4>${text}</h4>
+  </article>`;
+    })
+    .join(' ');
   return `
   <div class="card">
   <div class="card-top">
@@ -88,26 +106,7 @@ const movieTemplate = (movieDetail) => {
     </div>
   </div>
   <div class="card-bottom">
-    <article data-value=${awards} class="card-article card-border-primary">
-      <p>Awards</p>
-      <h4>${movieDetail.Awards}</h4>
-    </article>
-    <article data-value=${dollars} class="card-article card-border-primary">
-      <p>Box Office</p>
-      <h4>${movieDetail.BoxOffice}</h4>
-    </article>
-    <article data-value=${metascore} class="card-article card-border-primary">
-      <p>Metascore</p>
-      <h4>${movieDetail.Metascore}</h4>
-    </article>
-    <article data-value=${imdbRating} class="card-article card-border-primary">
-      <p>IMDB Rating</p>
-      <h4>${movieDetail.imdbRating}</h4>
-    </article>
-    <article data-value=${imdbVotes} class="card-article card-border-primary">
-      <p>IMDB Votes</p>
-      <h4>${movieDetail.imdbVotes}</h4>
-    </article>
+   ${cardArticles}
   </div>
   </div>
   `;
